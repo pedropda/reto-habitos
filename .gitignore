@@ -1,0 +1,11 @@
+# Dependencias y resultados de las pruebas
+node_modules/
+pruebas/capturas/
+
+# Nunca subir llaves secretas ni datos reales
+.env
+.env.*
+*.secret
+*secreto*
+exportes/
+*.csv

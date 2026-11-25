@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Aviso de privacidad · Reto de hábitos</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="barra"><h1>Reto de hábitos</h1></header>
+  <main>
+    <h2>Aviso de privacidad</h2>
+    <p class="error">Borrador del equipo. Falta definir al responsable, el correo de contacto y la región del servidor, y no ha tenido revisión legal.</p>
+
+    <div class="tarjeta aviso">
+      <h3>1. Quién es responsable</h3>
+      <p><span data-cfg="responsable"></span>, integrante del equipo del Hackathon «Tendencias en nuevas tecnologías» de la EBC. Contacto: <span data-cfg="correoContacto"></span>.</p>
+
+      <h3>2. Qué datos guardamos</h3>
+      <ul>
+        <li>Tu alias y la liga que te toque.</li>
+        <li>Las micro-acciones que elijas del catálogo, el hueco de tu día y tus días comprometidos.</li>
+        <li>Tu «cumplí» o «no cumplí» de cada día.</li>
+        <li>Si quieres aparecer en la tabla, el resultado de los sorteos y la fecha y hora en que aceptaste este aviso.</li>
+      </ul>
+      <p>No pedimos nombre, correo, teléfono, horas de sueño, datos de reloj ni texto libre. Tratamos tu registro diario de hábitos como dato sensible.</p>
+
+      <h3>3. Para qué</h3>
+      <p>Para operar el reto y medir, en un proyecto escolar, si un reto en grupo ayuda a sostener hábitos. No se venden datos ni se usan para otro fin.</p>
+
+      <h3>4. Quién ve qué</h3>
+      <ul>
+        <li><strong>Tu liga:</strong> solo alias, porcentaje de la meta propia, días cumplidos y racha, y solo de quien aceptó aparecer. Nunca qué acción es.</li>
+        <li><strong>El equipo:</strong> solo el responsable técnico y quien custodia la privacidad consultan registros por alias. No guardamos la relación entre alias y persona.</li>
+        <li><strong>El profesor y la institución:</strong> solo resultados agregados, sin alias.</li>
+      </ul>
+
+      <h3>5. Dónde se guardan y hasta cuándo</h3>
+      <p>En servidores de Supabase (<span data-cfg="regionServidor"></span>). Todo se borra a más tardar el 31 de diciembre de 2026.</p>
+
+      <h3>6. Tus decisiones</h3>
+      <ul>
+        <li>Participar es voluntario y no afecta calificaciones.</li>
+        <li>Aparecer en la tabla es opcional y puedes cambiarlo.</li>
+        <li>Puedes salirte y pedir que se borren tus datos cuando quieras, escribiendo al contacto de arriba.</li>
+      </ul>
+
+      <h3>7. Lo que esta página no es</h3>
+      <p>No es diagnóstico ni consejo médico. Es para mayores de 18 años. Si tienes síntomas o dudas de salud, consulta a un profesional.</p>
+    </div>
+    <p><a href="./">Volver</a></p>
+  </main>
+  <script src="js/config.js"></script>
+  <script>
+    document.querySelectorAll('[data-cfg]').forEach(function (el) {
+      el.textContent = (window.RETO_CONFIG || {})[el.getAttribute('data-cfg')] || '[por definir]';
+    });
+  </script>
+</body>
+</html>

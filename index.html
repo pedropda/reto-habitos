@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1f6f54">
+  <title>Reto de hábitos</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="barra">
+    <h1>Reto de hábitos</h1>
+    <span id="saludo" class="saludo" hidden></span>
+  </header>
+
+  <main>
+    <!-- Cargando -->
+    <section id="v-cargando" class="vista">
+      <p class="centro suave">Cargando…</p>
+    </section>
+
+    <!-- Mensajes que detienen todo: falta configuración, falta el enlace, etc. -->
+    <section id="v-aviso-sistema" class="vista" hidden>
+      <div class="tarjeta">
+        <h2 id="sistema-titulo"></h2>
+        <p id="sistema-texto"></p>
+      </div>
+    </section>
+
+    <!-- Historia 1 · Alta con alias y consentimiento -->
+    <section id="v-alta" class="vista" hidden>
+      <p class="paso">Paso 1 de 3</p>
+      <h2>Elige un alias</h2>
+      <p class="suave">No pedimos tu nombre, correo ni teléfono. Usa un apodo que no te identifique.</p>
+
+      <form id="form-alta" novalidate>
+        <label class="campo">
+          <span>Tu alias</span>
+          <input id="alias" type="text" inputmode="text" autocomplete="off" autocapitalize="words"
+                 minlength="3" maxlength="20" placeholder="Por ejemplo: Colibrí 22" required>
+          <small>De 3 a 20 caracteres: letras, números, espacios, guion o guion bajo.</small>
+        </label>
+
+        <div class="tarjeta aviso">
+          <h3>Aviso de privacidad (versión corta)</h3>
+          <ul>
+            <li><strong>Responsable:</strong> <span data-cfg="responsable"></span>. Contacto: <span data-cfg="correoContacto"></span>.</li>
+            <li><strong>Qué guardamos:</strong> tu alias, las micro-acciones que elijas, el hueco de tu día, tus días comprometidos, tu sí o no de cada día, si quieres aparecer en la tabla y la fecha y hora en que aceptas este aviso.</li>
+            <li><strong>Para qué:</strong> un proyecto escolar (Hackathon EBC) que prueba si un reto en grupo ayuda a sostener hábitos.</li>
+            <li><strong>Quién ve qué:</strong> tu liga ve solo tu alias y tu avance (porcentaje, días cumplidos y racha), y solo si lo aceptas. Nadie ve qué acción elegiste. Dos personas del equipo pueden consultar registros por alias para operar la prueba. El profesor y la escuela ven solo resultados del grupo, sin alias.</li>
+            <li><strong>Dónde y hasta cuándo:</strong> en servidores de Supabase (<span data-cfg="regionServidor"></span>). Todo se borra a más tardar el 31 de diciembre de 2026.</li>
+            <li>Participar es voluntario y no afecta calificaciones. Es para mayores de 18 años. No es diagnóstico ni consejo médico. Puedes salirte y pedir que se borren tus datos cuando quieras.</li>
+          </ul>
+          <p><a href="aviso.html" target="_blank" rel="noopener">Leer el aviso completo</a></p>
+        </div>
+
+        <label class="casilla">
+          <input id="acepta" type="checkbox">
+          <span>Soy mayor de 18 años y acepto el tratamiento de mis datos como dice el aviso. <em>(Obligatoria)</em></span>
+        </label>
+        <label class="casilla">
+          <input id="aparece" type="checkbox">
+          <span>Quiero aparecer con mi alias en la tabla de mi liga. <em>(Opcional)</em></span>
+        </label>
+
+        <p id="error-alta" class="error" role="alert" hidden></p>
+        <button id="btn-alta" class="boton principal" type="submit">Entrar</button>
+        <p class="suave chico">Usa siempre este mismo celular y navegador. Si borras los datos del navegador, pierdes tu acceso.</p>
+      </form>
+    </section>
+
+    <!-- Historia 2 · Elegir 1 o 2 micro-acciones -->
+    <section id="v-acciones" class="vista" hidden>
+      <p class="paso">Paso 2 de 3</p>
+      <h2>Elige tus micro-acciones</h2>
+      <p class="suave">Elige 2 acciones de 5 a 15 minutos. Si prefieres empezar con 1, también se puede.</p>
+      <div id="lista-catalogo"></div>
+      <p id="error-acciones" class="error" role="alert" hidden></p>
+      <button id="btn-acciones" class="boton principal" type="button" disabled>Continuar</button>
+    </section>
+
+    <!-- Historia 3 · Hueco del día y días comprometidos -->
+    <section id="v-hueco" class="vista" hidden>
+      <p class="paso">Paso 3 de 3</p>
+      <h2>¿En qué hueco de tu día?</h2>
+      <p class="suave">Elige el momento en que normalmente sí puedes. Lo puedes mover después.</p>
+      <div id="opciones-franja" class="opciones" role="radiogroup" aria-label="Hueco del día"></div>
+
+      <h2>¿Cuántos días a la semana te comprometes?</h2>
+      <p class="suave">Tu avance se mide contra tu propia meta, no contra la de los demás.</p>
+      <div id="opciones-dias" class="opciones dias" role="radiogroup" aria-label="Días por semana"></div>
+
+      <p id="error-hueco" class="error" role="alert" hidden></p>
+      <div class="fila-botones">
+        <button id="btn-hueco-atras" class="boton" type="button">Atrás</button>
+        <button id="btn-hueco" class="boton principal" type="button" disabled>Guardar mi plan</button>
+      </div>
+    </section>
+
+    <!-- Historia 4 · Registro diario -->
+    <section id="v-hoy" class="vista" hidden>
+      <div class="selector-dia" role="tablist" aria-label="Día a registrar">
+        <button id="tab-hoy" class="activo" type="button" role="tab" aria-selected="true">Hoy</button>
+        <button id="tab-ayer" type="button" role="tab" aria-selected="false">Ayer</button>
+      </div>
+      <p id="fecha-dia" class="suave centro"></p>
+      <div id="lista-registro"></div>
+
+      <div class="tarjeta semana">
+        <p class="etiqueta">Tu semana</p>
+        <p id="semana-texto" class="grande"></p>
+        <div class="barra-avance"><div id="semana-barra"></div></div>
+      </div>
+
+      <div class="tarjeta" id="tarjeta-franja">
+        <p class="etiqueta">Tu hueco del día</p>
+        <div id="cambiar-franja" class="opciones chicas" role="radiogroup" aria-label="Mover el hueco del día"></div>
+      </div>
+    </section>
+
+    <!-- Historia 5 · Tabla de la liga -->
+    <section id="v-tabla" class="vista" hidden>
+      <h2 id="tabla-titulo">Tabla de tu liga</h2>
+      <p id="tabla-mensaje" class="suave"></p>
+      <ol id="tabla-filas" class="tabla"></ol>
+      <p id="tabla-pie" class="suave chico" hidden>Se ordena por % de la meta propia y se reinicia cada lunes. Solo aparece quien aceptó. Nadie ve qué acción eligió cada quien.</p>
+    </section>
+  </main>
+
+  <nav id="navegacion" class="navegacion" hidden>
+    <button id="nav-hoy" class="activo" type="button">Registro</button>
+    <button id="nav-tabla" type="button">Tabla</button>
+  </nav>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

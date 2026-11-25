@@ -1,0 +1,14 @@
+{
+  "name": "reto-habitos-pruebas",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sql": "node probar-sql.mjs ../supabase/schema.sql",
+    "pagina": "node probar-pagina.mjs .. ./capturas",
+    "test": "npm run sql && npm run pagina"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
+    "playwright": "^1.65.0"
+  }
+}

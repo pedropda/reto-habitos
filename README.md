@@ -31,6 +31,7 @@ Proyecto del Hackathon «Tendencias en nuevas tecnologías» (EBC, 2026). El nom
 3. **Configuración.** Copiar la *Project URL* y la llave *publishable* (`sb_publishable_...`) a `js/config.js`.
 4. **Publicar.** En GitHub: *Settings > Pages > Deploy from a branch > main / (root)*.
 5. **Probar.** Abrir `https://<usuario>.github.io/<repositorio>/?c=PRUEBA` desde un celular.
+6. **Cerrar la cohorte de prueba.** `PRUEBA` aparece en este repositorio público, así que cualquiera podría usarla. Después de probar, poner `cohortes.abierta = false` en `PRUEBA` y crear una cohorte con un código privado que **no** se escriba en el repositorio. El código del enlace funciona como contraseña de registro.
 
 ## Operación (desde el panel de Supabase, *Table Editor*)
 

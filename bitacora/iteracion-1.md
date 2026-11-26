@@ -20,7 +20,11 @@
 - Se escribió la versión 0.1 del código: base de datos (`supabase/schema.sql`) y página (`index.html`, `css/`, `js/`), con apoyo de una herramienta de inteligencia artificial (Claude).
 - Historias cubiertas en código: 1 (alta con alias y consentimiento), 2 (micro-acciones), 3 (hueco y días, con sorteo), 4 (registro sí/no de hoy y ayer), 5 (tabla de la liga por % de la meta propia) y la parte de base de datos de la 6 (reglas de acceso, ligas e interruptor de tabla).
 - Pruebas automáticas en local: 44 comprobaciones de la base de datos y 37 de la página en tamaño celular, todas aprobadas. La autenticación de Supabase estuvo simulada.
-- **Falta para cerrar la historia 6:** crear el proyecto de Supabase, publicar con GitHub Pages y probar con el enlace real desde un celular.
+- Se creó el proyecto de Supabase (plan Free, región us-east-1), se activó el acceso anónimo y se corrió `schema.sql`. Comprobado: 10 acciones en el catálogo, reglas de acceso activas en las 5 tablas y, sin sesión, la API rechaza tablas y funciones.
+- Se creó el repositorio público `pedropda/reto-habitos` y se publicó con GitHub Pages: https://pedropda.github.io/reto-habitos/
+- La cohorte `PRUEBA` se cerró porque su código está en el repositorio público. El equipo prueba con una cohorte privada cuyo código no se escribe en el repositorio.
+- **Falta para cerrar la historia 6:** la primera alta real desde un celular con el enlace del equipo.
+- Adelanto de la iteración 2: el código de las historias 7 a 11 quedó escrito y probado en local (66 comprobaciones de base de datos y 52 de la página), **sin publicar**. Se publica como versión 0.2 cuando el equipo lo decida.
 
 ### Jueves 26 de noviembre
 

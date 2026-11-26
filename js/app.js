@@ -1,4 +1,4 @@
-// Reto de hábitos · versión 0.1 (iteración 1, historias 1 a 6)
+// Reto de hábitos · versión 0.2 (iteraciones 1 y 2, historias 1 a 11)
 // Página estática: toda la lógica de reglas vive en supabase/schema.sql.
 (function () {
   'use strict';
@@ -12,7 +12,7 @@
     { id: 'antes_clase',   nombre: 'Antes de clase' },
     { id: 'llegar_casa',   nombre: 'Al llegar a casa' }
   ];
-  var CATEGORIAS = { movimiento: 'Movimiento', sueno: 'Sueño', alimentacion: 'Alimentación' };
+  var CATEGORIAS = { movimiento: 'Movimiento', sueno: 'Descanso', alimentacion: 'Alimentación', bienestar: 'Bienestar' };
 
   var ERRORES = {
     sin_sesion: 'No se pudo iniciar tu sesión. Revisa tu conexión e inténtalo de nuevo.',
@@ -28,7 +28,8 @@
     plan_ya_guardado: 'Tu plan ya estaba guardado.',
     accion_invalida: 'Esa acción no es parte de tu plan.',
     sin_plan: 'Primero elige tus acciones y tu hueco.',
-    sin_alta: 'Primero elige tu alias.'
+    sin_alta: 'Primero elige tu alias.',
+    valor_invalido: 'No se pudo guardar tu decisión. Inténtalo de nuevo.'
   };
 
   var sb = null;
@@ -68,13 +69,14 @@
     return '';
   }
 
-  var VISTAS = ['v-cargando', 'v-aviso-sistema', 'v-alta', 'v-acciones', 'v-hueco', 'v-hoy', 'v-tabla'];
+  var VISTAS = ['v-cargando', 'v-aviso-sistema', 'v-alta', 'v-acciones', 'v-hueco', 'v-hoy', 'v-tabla', 'v-datos'];
   function mostrar(id) {
     VISTAS.forEach(function (v) { $(v).hidden = v !== id; });
-    var conNav = id === 'v-hoy' || id === 'v-tabla';
+    var conNav = id === 'v-hoy' || id === 'v-tabla' || id === 'v-datos';
     $('navegacion').hidden = !conNav;
     $('nav-hoy').classList.toggle('activo', id === 'v-hoy');
     $('nav-tabla').classList.toggle('activo', id === 'v-tabla');
+    $('nav-datos').classList.toggle('activo', id === 'v-datos');
     window.scrollTo(0, 0);
   }
 
@@ -226,7 +228,7 @@
   async function abrirAcciones() {
     mostrar('v-acciones');
     if (!catalogo.length) {
-      var r = await sb.from('catalogo').select('id,categoria,nombre,minutos').order('orden');
+      var r = await sb.from('catalogo').select('id,categoria,nombre,minutos,emoji').order('orden');
       if (r.error) {
         ponerError('error-acciones', mensajeDe(r.error));
         return;
@@ -244,14 +246,15 @@
       if (!deCat.length) return;
       caja.appendChild(crear('p', 'categoria', CATEGORIAS[cat]));
       deCat.forEach(function (a) {
-        var b = crear('button', 'opcion');
+        var b = crear('button', 'opcion accion-opcion cat-' + cat);
         b.type = 'button';
         b.setAttribute('role', 'checkbox');
         var marcada = elegidas.indexOf(a.id) !== -1;
         b.setAttribute('aria-checked', marcada ? 'true' : 'false');
         b.disabled = !marcada && elegidas.length >= 2;
-        b.appendChild(crear('span', '', a.nombre));
-        b.appendChild(crear('span', 'min', a.minutos + ' min'));
+        b.appendChild(crear('span', 'emoji', a.emoji || '•'));
+        b.appendChild(crear('span', 'nombre', a.nombre));
+        if (a.minutos) b.appendChild(crear('span', 'min', a.minutos + ' min'));
         b.addEventListener('click', function () {
           var i = elegidas.indexOf(a.id);
           if (i === -1) elegidas.push(a.id); else elegidas.splice(i, 1);
@@ -328,26 +331,29 @@
     var caja = $('lista-registro');
     caja.textContent = '';
     estado.acciones.forEach(function (a) {
-      var tarjeta = crear('div', 'tarjeta accion');
-      var conHueco = a.id === estado.accion_con_hueco;
-      if (conHueco) {
-        tarjeta.appendChild(crear('span', 'hueco', 'Tu hueco: ' + nombreFranja(estado.franja).toLowerCase()));
-      } else {
-        tarjeta.appendChild(crear('span', 'hueco sin', 'Sin hueco fijo: cuando puedas'));
-      }
-      tarjeta.appendChild(crear('h3', '', a.nombre));
-      tarjeta.appendChild(crear('p', 'detalle', a.minutos + ' minutos · ¿la hiciste?'));
-
       var valor = registroDe(fecha, a.id);
-      var fila = crear('div', 'si-no');
-      [[true, 'si', 'Sí'], [false, 'no', 'No']].forEach(function (op) {
-        var b = crear('button', op[1], op[2]);
-        b.type = 'button';
-        b.setAttribute('aria-pressed', valor === op[0] ? 'true' : 'false');
-        b.addEventListener('click', function () { marcar(a.id, op[0]); });
-        fila.appendChild(b);
-      });
-      tarjeta.appendChild(fila);
+      var tarjeta = crear('div', 'tarjeta accion cat-' + (a.categoria || 'movimiento') + (valor === true ? ' hecha' : ''));
+      tarjeta.appendChild(crear('span', 'emoji', a.emoji || '•'));
+
+      var cuerpo = crear('div', 'cuerpo');
+      cuerpo.appendChild(crear('h3', '', a.nombre));
+      var detalle = crear('p', 'detalle');
+      if (a.minutos) detalle.appendChild(crear('span', '', a.minutos + ' min · '));
+      if (a.id === estado.accion_con_hueco) {
+        detalle.appendChild(crear('span', 'hueco', 'Tu hueco: ' + nombreFranja(estado.franja).toLowerCase()));
+      } else {
+        detalle.appendChild(crear('span', 'hueco sin', 'Sin hueco fijo: cuando puedas'));
+      }
+      cuerpo.appendChild(detalle);
+      tarjeta.appendChild(cuerpo);
+
+      // Un solo toque: marca como cumplida; otro toque la desmarca
+      var b = crear('button', 'check', valor === true ? '✓' : '');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', valor === true ? 'true' : 'false');
+      b.setAttribute('aria-label', (valor === true ? 'Desmarcar: ' : 'Marcar como cumplida: ') + a.nombre);
+      b.addEventListener('click', function () { marcar(a.id, valor !== true); });
+      tarjeta.appendChild(b);
       caja.appendChild(tarjeta);
     });
 
@@ -355,8 +361,37 @@
     var meta = estado.dias_comprometidos || 0;
     $('semana-texto').textContent = cum + ' de ' + meta + (meta === 1 ? ' día' : ' días') + ' · ' + (estado.pct_semana || 0) + ' % de tu meta';
     $('semana-barra').style.width = Math.min(100, estado.pct_semana || 0) + '%';
+    pintarSemana();
 
     pintarOpciones('cambiar-franja', FRANJAS, estado.franja, moverFranja);
+  }
+
+  // Historia 8: mi semana (lunes a domingo) y mi racha
+  var LETRAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  var NOMBRE_ESTADO = { si: 'cumplido', no: 'no cumplido', pendiente: 'pendiente', futuro: 'por venir', antes: 'antes de entrar' };
+  function pintarSemana() {
+    var caja = $('semana-dias');
+    caja.textContent = '';
+    (estado.semana || []).forEach(function (d, i) {
+      var dia = crear('div', 'dia ' + d.estado);
+      var simbolo = d.estado === 'si' ? '✓' : (d.estado === 'no' ? '–' : '');
+      dia.appendChild(crear('span', 'punto', simbolo));
+      dia.appendChild(crear('span', '', LETRAS[i]));
+      dia.setAttribute('aria-label', fechaLarga(d.fecha) + ': ' + NOMBRE_ESTADO[d.estado]);
+      caja.appendChild(dia);
+    });
+    caja.hidden = !(estado.semana && estado.semana.length);
+    var r = estado.racha;
+    var texto = '';
+    if (typeof r === 'number') {
+      texto = r === 0 ? 'Todavía no tienes racha. Empieza hoy.'
+        : 'Racha: ' + r + (r === 1 ? ' día' : ' días') + '. Tienes un comodín por semana: un día fallado no la rompe.';
+    }
+    $('semana-racha').textContent = texto;
+    var chip = $('racha-chip');
+    chip.hidden = !(typeof r === 'number' && r > 0);
+    chip.textContent = '🔥 ' + r;
+    chip.setAttribute('aria-label', 'Racha de ' + r + (r === 1 ? ' día' : ' días'));
   }
 
   async function marcar(accion, cumplio) {
@@ -400,6 +435,7 @@
     var filas = $('tabla-filas');
     filas.textContent = '';
     $('tabla-pie').hidden = true;
+    $('tabla-grupo').hidden = true;
     $('tabla-titulo').textContent = 'Tabla de tu liga';
     $('tabla-mensaje').textContent = 'Cargando…';
     var t;
@@ -419,9 +455,15 @@
       return;
     }
     var mensaje = 'Semana del ' + fechaLarga(t.lunes).replace(/^\S+\s/, '') + '.';
-    if (!t.yo_aparezco) mensaje += ' Tú no apareces porque así lo elegiste.';
+    if (!t.yo_aparezco) mensaje += ' Tú no apareces porque así lo elegiste; lo puedes cambiar en «Mis datos».';
     if (!t.filas.length) mensaje += ' Nadie de tu liga ha aceptado aparecer todavía.';
     $('tabla-mensaje').textContent = mensaje;
+    // Historia 11: meta colectiva, sin lista de últimos lugares
+    if (t.grupo) {
+      $('grupo-texto').textContent = 'El grupo lleva ' + t.grupo.pct + ' % de su meta de la semana';
+      $('grupo-barra').style.width = Math.min(100, t.grupo.pct) + '%';
+      $('tabla-grupo').hidden = false;
+    }
     t.filas.forEach(function (f) {
       var li = crear('li', f.soy_yo ? 'yo' : '');
       var renglon = crear('div', 'renglon');
@@ -433,9 +475,62 @@
       relleno.style.width = Math.min(100, f.pct) + '%';
       barra.appendChild(relleno);
       li.appendChild(barra);
+      if (typeof f.dias === 'number') {
+        li.appendChild(crear('p', 'detalle', f.dias + (f.dias === 1 ? ' día cumplido' : ' días cumplidos')
+          + ' · racha de ' + f.racha + (f.racha === 1 ? ' día' : ' días')));
+      }
       filas.appendChild(li);
     });
     $('tabla-pie').hidden = false;
+  }
+
+  // ---------- historias 7 y 9: mis datos ----------
+
+  function abrirDatos() {
+    $('datos-alias').textContent = estado.alias;
+    var nombres = estado.acciones.map(function (a) { return a.nombre; }).join(' y ');
+    var meta = estado.dias_comprometidos;
+    $('datos-plan').textContent = nombres + '. Te comprometiste a ' + meta + (meta === 1 ? ' día' : ' días') + ' por semana.';
+    $('datos-aparece').checked = !!estado.aparece_en_tabla;
+    $('confirmar-borrado').hidden = true;
+    $('btn-borrar').hidden = false;
+    mostrar('v-datos');
+  }
+
+  async function cambiarAparece() {
+    var casilla = $('datos-aparece');
+    var nuevo = casilla.checked;
+    casilla.disabled = true;
+    try {
+      await rpc('cambiar_aparece', { p_aparece: nuevo });
+      estado.aparece_en_tabla = nuevo;
+      toast(nuevo ? 'Listo: ahora apareces en la tabla de tu liga.' : 'Listo: ya no apareces en la tabla.');
+    } catch (e) {
+      casilla.checked = !nuevo;
+      toast('No se guardó. ' + mensajeDe(e));
+    } finally {
+      casilla.disabled = false;
+    }
+  }
+
+  async function borrarTodo() {
+    var boton = $('btn-borrar-si');
+    boton.disabled = true;
+    boton.textContent = 'Borrando…';
+    try {
+      await rpc('borrar_mis_datos');
+    } catch (e) {
+      boton.disabled = false;
+      boton.textContent = 'Sí, borrar todo';
+      toast('No se pudo borrar. ' + mensajeDe(e));
+      return;
+    }
+    try { await sb.auth.signOut({ scope: 'local' }); } catch (e) { /* el usuario ya no existe */ }
+    try { localStorage.removeItem('reto.codigo'); } catch (e) { /* sin almacenamiento */ }
+    estado = null;
+    $('saludo').hidden = true;
+    detener('Tus datos se borraron',
+      'Se borraron tu alias, tu plan y todos tus registros. Gracias por participar. Si quieres volver, necesitas de nuevo el enlace de invitación.');
   }
 
   // ---------- eventos ----------
@@ -447,6 +542,11 @@
   $('tab-hoy').addEventListener('click', function () { verAyer = false; pintarHoy(); });
   $('tab-ayer').addEventListener('click', function () { verAyer = true; pintarHoy(); });
   $('nav-tabla').addEventListener('click', abrirTabla);
+  $('nav-datos').addEventListener('click', abrirDatos);
+  $('datos-aparece').addEventListener('change', cambiarAparece);
+  $('btn-borrar').addEventListener('click', function () { $('confirmar-borrado').hidden = false; $('btn-borrar').hidden = true; });
+  $('btn-borrar-no').addEventListener('click', function () { $('confirmar-borrado').hidden = true; $('btn-borrar').hidden = false; });
+  $('btn-borrar-si').addEventListener('click', borrarTodo);
   $('nav-hoy').addEventListener('click', async function () {
     mostrar('v-hoy');
     try { estado = await rpc('mi_estado'); pintarHoy(); } catch (e) { /* se queda con lo que había */ }

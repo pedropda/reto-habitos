@@ -24,7 +24,9 @@
 - Se creó el repositorio público `pedropda/reto-habitos` y se publicó con GitHub Pages: https://pedropda.github.io/reto-habitos/
 - La cohorte `PRUEBA` se cerró porque su código está en el repositorio público. El equipo prueba con una cohorte privada cuyo código no se escribe en el repositorio.
 - **Falta para cerrar la historia 6:** la primera alta real desde un celular con el enlace del equipo.
-- Adelanto de la iteración 2: el código de las historias 7 a 11 quedó escrito y probado en local (66 comprobaciones de base de datos y 52 de la página), **sin publicar**. Se publica como versión 0.2 cuando el equipo lo decida.
+- Primera alta real desde un celular (Pedro): alias, micro-acciones y hueco funcionaron con el enlace del equipo. Falta confirmar el registro diario y la tabla.
+- Adelanto de la iteración 2: se escribió el código de las historias 7 a 11 y se publicó como **versión 0.2**, antes de invitar a participantes, para no cambiar la página con la prueba en curso. Pruebas en local: 66 comprobaciones de base de datos y 55 de la página.
+- Catálogo nuevo de 10 micro-acciones en 4 categorías (borrador, pendiente de la revisión del profesional de la salud) y rediseño de la interfaz: tema oscuro, tarjetas por categoría, un solo toque para marcar, semana y racha arriba. Capturas con datos de prueba: `docs/pantallas-v0.2.png`.
 
 ### Jueves 26 de noviembre
 

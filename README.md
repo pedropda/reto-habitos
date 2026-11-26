@@ -4,7 +4,9 @@ Página web de reto por cohorte para personas que trabajan y estudian. Cada quie
 
 Proyecto del Hackathon «Tendencias en nuevas tecnologías» (EBC, 2026). El nombre «Reto de hábitos» es provisional.
 
-**Versión 0.1 · iteración 1 (23 al 29 de noviembre de 2026).** Cubre las historias 1 a 6 del backlog.
+**Versión 0.2 (25 de noviembre de 2026).** Cubre las historias 1 a 11 del backlog: la iteración 1 (historias 1 a 6) y, por adelantado, la iteración 2 (historias 7 a 11).
+
+![Pantallas de la versión 0.2, con datos de prueba](docs/pantallas-v0.2.png)
 
 ## Qué hay en este repositorio
 
@@ -43,7 +45,7 @@ Proyecto del Hackathon «Tendencias en nuevas tecnologías» (EBC, 2026). El nom
 | Asignar a alguien a una liga | Poner el `id` de la liga en `participantes.liga_id` |
 | Encender o apagar la tabla de una liga | `ligas.tabla_encendida` |
 | Marcar a los integrantes del equipo | `participantes.es_equipo = true` (se reportan aparte) |
-| Dar de baja a alguien (mientras no exista el botón) | Borrar su usuario en *Authentication > Users*; sus datos se borran en cascada |
+| Dar de baja a alguien (si no puede usar el botón «Salir y borrar mis datos») | Borrar su usuario en *Authentication > Users*; sus datos se borran en cascada |
 
 ## Reglas del repositorio
 
@@ -59,12 +61,13 @@ npm install
 npm test
 ```
 
-`probar-sql.mjs` corre `schema.sql` en un Postgres local y revisa las reglas (44 comprobaciones). `probar-pagina.mjs` abre la página en un navegador con tamaño de celular y recorre el flujo completo contra ese mismo Postgres (37 comprobaciones). En las dos, la autenticación de Supabase está simulada: la prueba con el Supabase real se hace a mano con el enlace `?c=PRUEBA`.
+`probar-sql.mjs` corre `schema.sql` en un Postgres local y revisa las reglas (66 comprobaciones). `probar-pagina.mjs` abre la página en un navegador con tamaño de celular y recorre el flujo completo contra ese mismo Postgres (55 comprobaciones). En las dos, la autenticación de Supabase está simulada: la prueba con el Supabase real se hace a mano con el enlace `?c=PRUEBA`.
 
 ## Pendientes y decisiones abiertas
 
 - **Qué cuenta como «día cumplido» con 2 acciones.** Hoy cuenta si se cumplió al menos una. Se cambia en una sola función (`dias_cumplidos`).
 - **Catálogo de micro-acciones.** Es un borrador: falta la revisión del profesional de la salud.
 - **Aviso de privacidad.** Falta definir quién firma como responsable, el correo de contacto y la región del servidor (`js/config.js` y `aviso.html`).
-- **Iteración 2** (30 de noviembre al 6 de diciembre): cambiar la decisión de aparecer, mi semana y racha, salir y borrar mis datos, indicadores agregados sin alias y meta colectiva.
+- **Racha.** Cuenta días cumplidos seguidos, con un comodín por semana. Alternativa por decidir: contarla por semanas cumplidas.
+- **Indicadores (historia 10).** Se consultan en el SQL Editor con `select * from public.indicadores('CODIGO');` y se exportan desde ahí, sin alias.
 - Todo se borra a más tardar el 31 de diciembre de 2026.

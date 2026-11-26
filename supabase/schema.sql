@@ -1,6 +1,6 @@
 -- =====================================================================
 -- Reto de hábitos · base de datos (Supabase / Postgres)
--- Versión 0.1 · iteración 1 (historias 1 a 6)
+-- Versión 0.2 · iteraciones 1 y 2 (historias 1 a 11)
 --
 -- Cómo usarlo: Supabase > SQL Editor > pegar TODO este archivo > Run.
 -- Se puede correr varias veces sin romper nada.
@@ -36,12 +36,19 @@ create table if not exists public.ligas (
 -- Catálogo de micro-acciones (5 a 15 minutos). Sin texto libre.
 create table if not exists public.catalogo (
   id         text primary key,
-  categoria  text not null check (categoria in ('movimiento', 'sueno', 'alimentacion')),
+  categoria  text not null,
   nombre     text not null,
-  minutos    int  not null check (minutos between 5 and 15),
+  minutos    int  check (minutos between 5 and 15),  -- vacío = no tiene duración fija
+  emoji      text,
   orden      int  not null default 0,
   activa     boolean not null default true
 );
+-- Ajustes para bases creadas con la versión 0.1
+alter table public.catalogo add column if not exists emoji text;
+alter table public.catalogo alter column minutos drop not null;
+alter table public.catalogo drop constraint if exists catalogo_categoria_check;
+alter table public.catalogo add constraint catalogo_categoria_check
+  check (categoria in ('movimiento', 'sueno', 'alimentacion', 'bienestar'));
 
 create table if not exists public.participantes (
   id                  uuid primary key references auth.users(id) on delete cascade,
@@ -141,6 +148,55 @@ as $$
     when coalesce(p_comprometidos, 0) = 0 then 0
     else least(100, round(100.0 * p_cumplidos / p_comprometidos))::int
   end;
+$$;
+
+-- Historia 8: racha = días cumplidos seguidos, contando hacia atrás desde hoy
+-- (o desde ayer, si hoy todavía no hay un "sí"). Un día fallado por semana
+-- (lunes a domingo) no rompe la racha: es el comodín. El día del comodín no suma.
+create or replace function public.racha(p_participante uuid)
+returns int
+language plpgsql stable
+set search_path = ''
+as $$
+declare
+  v_hoy     date := public.hoy_cdmx();
+  v_inicio  date;
+  v_dias    date[];
+  v_d       date;
+  v_racha   int := 0;
+  v_comodin date;   -- lunes de la última semana en la que ya se usó el comodín
+  v_sem     date;
+begin
+  select (plan_en at time zone 'America/Mexico_City')::date into v_inicio
+  from public.participantes where id = p_participante;
+  if v_inicio is null then
+    return 0;
+  end if;
+
+  select coalesce(array_agg(distinct fecha), '{}') into v_dias
+  from public.registros where participante_id = p_participante and cumplio;
+
+  v_d := v_hoy;
+  if not (v_d = any (v_dias)) then
+    v_d := v_d - 1;   -- hoy sigue abierto: todavía no cuenta como falla
+  end if;
+
+  -- v_inicio - 1: el día del alta también se puede registrar "ayer"
+  while v_d >= v_inicio - 1 loop
+    if v_d = any (v_dias) then
+      v_racha := v_racha + 1;
+    else
+      v_sem := date_trunc('week', v_d::timestamp)::date;
+      if v_comodin is not distinct from v_sem then
+        exit;
+      end if;
+      v_comodin := v_sem;
+    end if;
+    v_d := v_d - 1;
+  end loop;
+
+  return v_racha;
+end;
 $$;
 
 -- Historia 1: alta con alias y consentimiento
@@ -337,7 +393,8 @@ begin
     'dias_comprometidos', v_p.dias_comprometidos,
     'accion_con_hueco', v_p.accion_con_hueco,
     'acciones', coalesce((
-      select jsonb_agg(jsonb_build_object('id', c.id, 'nombre', c.nombre, 'minutos', c.minutos)
+      select jsonb_agg(jsonb_build_object('id', c.id, 'nombre', c.nombre, 'minutos', c.minutos,
+                                          'emoji', c.emoji, 'categoria', c.categoria)
                        order by (c.id = v_p.accion_con_hueco) desc, c.orden)
       from public.catalogo c
       where c.id in (v_p.accion_a, v_p.accion_b)
@@ -351,7 +408,24 @@ begin
       where r.participante_id = v_uid and r.fecha in (v_hoy, v_hoy - 1)
     ), '[]'::jsonb),
     'dias_cumplidos_semana', v_cum,
-    'pct_semana', public.pct_meta(v_cum, v_p.dias_comprometidos)
+    'pct_semana', public.pct_meta(v_cum, v_p.dias_comprometidos),
+    -- Historia 8: mi semana (lunes a domingo) y mi racha
+    'racha', public.racha(v_uid),
+    'semana', (
+      select jsonb_agg(jsonb_build_object(
+        'fecha', d.dia,
+        'estado', case
+          when d.dia > v_hoy then 'futuro'
+          when exists (select 1 from public.registros r
+                       where r.participante_id = v_uid and r.fecha = d.dia and r.cumplio) then 'si'
+          when d.dia = v_hoy and not exists (select 1 from public.registros r
+                       where r.participante_id = v_uid and r.fecha = d.dia) then 'pendiente'
+          when v_p.plan_en is null
+               or d.dia < (v_p.plan_en at time zone 'America/Mexico_City')::date - 1 then 'antes'
+          else 'no'
+        end) order by d.dia)
+      from (select (v_lunes + n) as dia from generate_series(0, 6) n) d
+    )
   );
 end;
 $$;
@@ -370,6 +444,7 @@ declare
   v_liga  public.ligas;
   v_lunes date := date_trunc('week', public.hoy_cdmx()::timestamp)::date;
   v_filas jsonb;
+  v_grupo jsonb;
 begin
   select * into v_p from public.participantes where id = v_uid;
   if not found then
@@ -384,12 +459,15 @@ begin
     return jsonb_build_object('estado', 'apagada', 'liga', v_liga.nombre);
   end if;
 
-  select coalesce(jsonb_agg(jsonb_build_object('alias', t.alias, 'pct', t.pct, 'soy_yo', t.soy_yo)
+  select coalesce(jsonb_agg(jsonb_build_object('alias', t.alias, 'pct', t.pct, 'dias', t.dias,
+                                               'racha', t.racha, 'soy_yo', t.soy_yo)
                             order by t.pct desc, lower(t.alias)), '[]'::jsonb)
   into v_filas
   from (
     select p.alias,
+           public.dias_cumplidos(p.id, v_lunes) as dias,
            public.pct_meta(public.dias_cumplidos(p.id, v_lunes), p.dias_comprometidos) as pct,
+           public.racha(p.id) as racha,
            p.id = v_uid as soy_yo
     from public.participantes p
     where p.liga_id = v_liga.id
@@ -397,14 +475,114 @@ begin
       and p.plan_en is not null
   ) t;
 
+  -- Historia 11: meta colectiva. Se calcula sobre toda la cohorte (no sobre la
+  -- liga) y solo con 5 personas o más, para que nadie pueda deducir el avance
+  -- de quien eligió no aparecer. No hay lista de últimos lugares.
+  select case when count(*) >= 5 then jsonb_build_object(
+           'participantes', count(*),
+           'pct', public.pct_meta(sum(least(g.dias, g.meta))::int, sum(g.meta)::int))
+         end
+  into v_grupo
+  from (
+    select public.dias_cumplidos(p.id, v_lunes) as dias, p.dias_comprometidos as meta
+    from public.participantes p
+    where p.cohorte = v_p.cohorte and p.plan_en is not null
+  ) g;
+
   return jsonb_build_object(
     'estado', 'encendida',
     'liga', v_liga.nombre,
     'lunes', v_lunes,
     'yo_aparezco', v_p.aparece_en_tabla,
-    'filas', v_filas
+    'filas', v_filas,
+    'grupo', v_grupo
   );
 end;
+$$;
+
+-- Historia 7: cambiar después la decisión de aparecer en la tabla
+create or replace function public.cambiar_aparece(p_aparece boolean)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_aparece is null then
+    raise exception 'valor_invalido';
+  end if;
+  update public.participantes set aparece_en_tabla = p_aparece where id = auth.uid();
+  if not found then
+    raise exception 'sin_alta';
+  end if;
+end;
+$$;
+
+-- Historia 9: salir y borrar mis datos. Borra al usuario; su alias, su plan y
+-- sus registros se van en cascada. No se puede deshacer.
+create or replace function public.borrar_mis_datos()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then
+    raise exception 'sin_sesion';
+  end if;
+  delete from auth.users where id = v_uid;
+end;
+$$;
+
+-- Historia 10: indicadores agregados por semana, SIN alias. No se expone a la
+-- página: el equipo la corre en el SQL Editor y exporta el resultado.
+--   select * from public.indicadores('CODIGO-DE-LA-COHORTE');
+-- El equipo (es_equipo) sale en un renglón aparte y no cuenta en los indicadores.
+create or replace function public.indicadores(p_cohorte text)
+returns table (
+  semana              date,
+  grupo               text,
+  participantes       int,
+  con_registro        int,
+  dias_comprometidos  int,
+  dias_cumplidos      int,
+  pct_cumplimiento    int,
+  aceptan_aparecer    int
+)
+language sql stable
+set search_path = ''
+as $$
+  with semanas as (
+    select generate_series(
+      (select date_trunc('week', min(plan_en at time zone 'America/Mexico_City'))
+       from public.participantes
+       where cohorte = upper(btrim(p_cohorte)) and plan_en is not null),
+      date_trunc('week', public.hoy_cdmx()::timestamp),
+      interval '7 days')::date as lunes
+  ), base as (
+    select s.lunes, p.es_equipo, p.dias_comprometidos as meta, p.aparece_en_tabla,
+           public.dias_cumplidos(p.id, s.lunes) as dias,
+           exists (select 1 from public.registros r
+                   where r.participante_id = p.id and r.fecha between s.lunes and s.lunes + 6) as con_registro
+    from semanas s
+    join public.participantes p
+      on p.cohorte = upper(btrim(p_cohorte))
+     and p.plan_en is not null
+     and (p.plan_en at time zone 'America/Mexico_City')::date <= s.lunes + 6
+  )
+  select lunes,
+         case when es_equipo then 'equipo' else 'externos' end,
+         count(*)::int,
+         (count(*) filter (where con_registro))::int,
+         sum(meta)::int,
+         sum(least(dias, meta))::int,
+         public.pct_meta(sum(least(dias, meta))::int, sum(meta)::int),
+         (count(*) filter (where aparece_en_tabla))::int
+  from base
+  group by lunes, es_equipo
+  order by lunes, 2;
 $$;
 
 -- Permisos de las funciones: solo quien ya entró puede llamarlas
@@ -417,7 +595,11 @@ revoke execute on function
   public.cambiar_franja(text),
   public.registrar(text, boolean, boolean),
   public.mi_estado(),
-  public.tabla_liga()
+  public.tabla_liga(),
+  public.racha(uuid),
+  public.cambiar_aparece(boolean),
+  public.borrar_mis_datos(),
+  public.indicadores(text)
 from public, anon, authenticated;
 
 grant execute on function
@@ -426,24 +608,35 @@ grant execute on function
   public.cambiar_franja(text),
   public.registrar(text, boolean, boolean),
   public.mi_estado(),
-  public.tabla_liga()
+  public.tabla_liga(),
+  public.cambiar_aparece(boolean),
+  public.borrar_mis_datos()
 to authenticated;
 
 -- ---------- Datos iniciales ------------------------------------------
 
--- Catálogo. BORRADOR: falta la revisión del profesional de la salud aliado.
-insert into public.catalogo (id, categoria, nombre, minutos, orden) values
-  ('caminar',      'movimiento',   'Caminar a paso ligero',                          10, 1),
-  ('escaleras',    'movimiento',   'Subir y bajar escaleras',                         5, 2),
-  ('estirar',      'movimiento',   'Estirar cuello, espalda y piernas',               5, 3),
-  ('fuerza',       'movimiento',   'Rutina corta de fuerza sin equipo',              10, 4),
-  ('pantallas',    'sueno',        'Apagar pantallas antes de dormir',               15, 5),
-  ('acostarse',    'sueno',        'Acostarte 15 minutos antes de lo habitual',      15, 6),
-  ('rutina_noche', 'sueno',        'Dejar listo lo de mañana y poner alarma para dormir', 5, 7),
-  ('colacion',     'alimentacion', 'Preparar una colación de fruta o verdura',       10, 8),
-  ('agua',         'alimentacion', 'Tomar agua y rellenar tu botella',                5, 9),
-  ('comer_calma',  'alimentacion', 'Comer sin pantallas',                            15, 10)
-on conflict (id) do nothing;
+-- Catálogo (versión 2, 25-nov-2026): acciones básicas del día, con nombre corto.
+-- BORRADOR: falta la revisión del profesional de la salud aliado.
+insert into public.catalogo (id, categoria, nombre, minutos, emoji, orden) values
+  ('caminar',     'movimiento',   'Salir a caminar',                               15,   '🚶', 1),
+  ('estirar',     'movimiento',   'Estirarte',                                      5,   '🧘', 2),
+  ('fuerza',      'movimiento',   'Ejercicio corto sin equipo',                    10,   '💪', 3),
+  ('levantarse',  'sueno',        'Levantarte a tu hora, sin posponer la alarma',  null, '⏰', 4),
+  ('tender_cama', 'sueno',        'Tender tu cama',                                 5,   '🛏️', 5),
+  ('pantallas',   'sueno',        'Apagar pantallas antes de dormir',              15,   '📵', 6),
+  ('agua',        'alimentacion', 'Tomar 2 vasos de agua',                          5,   '💧', 7),
+  ('fruta',       'alimentacion', 'Comer una fruta o verdura',                     10,   '🍎', 8),
+  ('disfrutar',   'bienestar',    'Hacer algo que disfruto',                       15,   '🎵', 9),
+  ('respirar',    'bienestar',    'Respirar con calma',                             5,   '🌬️', 10)
+on conflict (id) do update set
+  categoria = excluded.categoria, nombre = excluded.nombre, minutos = excluded.minutos,
+  emoji = excluded.emoji, orden = excluded.orden, activa = true;
+
+-- Las acciones que ya no están en el catálogo se apagan (no se borran,
+-- por si alguien ya las había elegido).
+update public.catalogo set activa = false
+where id not in ('caminar', 'estirar', 'fuerza', 'levantarse', 'tender_cama',
+                 'pantallas', 'agua', 'fruta', 'disfrutar', 'respirar');
 
 -- Cohorte de PRUEBA para el equipo. El enlace queda: .../?c=PRUEBA
 -- La cohorte real se crea antes del domingo 29 con un código difícil de adivinar.

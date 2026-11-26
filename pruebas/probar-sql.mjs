@@ -138,6 +138,92 @@ await como(2);
 t = await rpc('public.tabla_liga()');
 check('tope de 100 % y orden por % de la meta propia', t.filas[0].alias === 'Ñandú_7' && t.filas[0].pct === 100 && t.filas[1].pct === 75, JSON.stringify(t.filas));
 
+// ================= Iteración 2 (historias 7 a 11) =================
+await admin();
+const lunesISO = (await db.query(`select date_trunc('week', public.hoy_cdmx()::timestamp)::date::text l, extract(isodow from public.hoy_cdmx())::int d`)).rows[0];
+const dow = lunesISO.d; // 1 = lunes ... 7 = domingo
+await admin();
+await db.exec(`update public.participantes set plan_en = now() - interval '30 days'; delete from public.registros;`);
+const pon = async (n, offs) => { for (const o of offs) await db.exec(`insert into public.registros values ('${U(n)}', public.hoy_cdmx() - ${o}, '${n === 1 ? 'caminar' : 'estirar'}', true)`); };
+
+// Historia 8: racha con comodín
+await pon(1, [0, 1, 3]);
+await como(1);
+e = await rpc('public.mi_estado()');
+check('racha: hoy, ayer y antier fallado con comodín = 3', e.racha === 3, 'racha ' + e.racha);
+await admin(); await db.exec(`delete from public.registros`); await pon(1, [1, 2]);
+await como(1);
+check('racha: hoy sin registrar todavía no rompe la racha', (await rpc('public.mi_estado()')).racha === 2);
+await admin(); await db.exec(`delete from public.registros`); await pon(1, [0, 3]);
+await como(1);
+// hoy-1 y hoy-2 fallados: si caen en la misma semana solo hay un comodín
+const mismaSemana = dow !== 2; // martes: hoy-1 es lunes y hoy-2 es domingo de la semana pasada
+e = await rpc('public.mi_estado()');
+check('racha: dos fallas en la misma semana la rompen (un comodín por semana)', e.racha === (mismaSemana ? 1 : 2), `racha ${e.racha}, dow ${dow}`);
+await admin(); await db.exec(`delete from public.registros`);
+await como(1);
+check('racha sin registros = 0', (await rpc('public.mi_estado()')).racha === 0);
+await falla('la página no puede llamar racha() de otra persona', `select public.racha('${U(2)}')`, 'permission denied');
+
+// Historia 8: mi semana
+await admin(); await pon(1, [0]);
+await como(1);
+e = await rpc('public.mi_estado()');
+check('mi semana trae 7 días, de lunes a domingo', e.semana.length === 7 && e.semana[0].fecha === lunesISO.l, JSON.stringify(e.semana));
+check('mi semana: hoy en "si" y los días que faltan en "futuro"', e.semana[dow - 1].estado === 'si' && e.semana.slice(dow).every(x => x.estado === 'futuro'));
+check('mi semana: días pasados sin registro en "no"', e.semana.slice(0, dow - 1).every(x => x.estado === 'no'));
+await admin(); await db.exec(`delete from public.registros`);
+await como(1);
+check('mi semana: hoy sin registrar en "pendiente"', (await rpc('public.mi_estado()')).semana[dow - 1].estado === 'pendiente');
+
+// Historia 7: cambiar la decisión de aparecer
+await admin(); await pon(1, [0]); await pon(2, [0]);
+await como(1);
+await db.exec(`select public.cambiar_aparece(false)`);
+t = await rpc('public.tabla_liga()');
+check('historia 7: al ocultarme dejo de salir en la tabla', !t.yo_aparezco && t.filas.every(f => !f.soy_yo) && t.filas.length === 1);
+await db.exec(`select public.cambiar_aparece(true)`);
+t = await rpc('public.tabla_liga()');
+check('historia 7: al volver a aceptar, aparezco de nuevo', t.yo_aparezco && t.filas.length === 2);
+const yo = t.filas.find(f => f.soy_yo);
+check('historia 8: la tabla trae días cumplidos y racha', yo.dias === 1 && yo.racha === 1 && yo.pct === 25, JSON.stringify(yo));
+check('la tabla sigue sin decir qué acción es', !JSON.stringify(t).match(/caminar|agua|estirar/));
+
+// Historia 11: meta colectiva
+check('meta colectiva oculta con menos de 5 personas', t.grupo === null);
+await admin();
+for (const n of [3, 4, 5]) {
+  await db.exec(`insert into public.participantes (id, cohorte, alias, consentimiento_en, accion_a, accion_con_hueco, franja, dias_comprometidos, plan_en)
+    values ('${U(n)}', 'PRUEBA', 'Extra ${n}', now(), 'agua', 'agua', 'comida', 2, now() - interval '30 days')`);
+}
+await db.exec(`insert into public.registros values ('${U(3)}', public.hoy_cdmx(), 'agua', true)`);
+await como(1);
+t = await rpc('public.tabla_liga()');
+// comprometidos: 4 + 2 + 2 + 2 + 2 = 12; cumplidos: 1 + 1 + 1 = 3 -> 25 %
+check('meta colectiva con 5 personas: % del grupo, sin nombres', t.grupo && t.grupo.participantes === 5 && t.grupo.pct === 25, JSON.stringify(t.grupo));
+
+// Historia 10: indicadores agregados sin alias
+await falla('la página no puede pedir los indicadores', `select * from public.indicadores('PRUEBA')`, 'permission denied');
+await admin();
+await db.exec(`update public.participantes set es_equipo = true where id in ('${U(1)}', '${U(2)}')`);
+const ind = (await db.query(`select * from public.indicadores('prueba') where semana = date_trunc('week', public.hoy_cdmx()::timestamp)::date order by grupo`)).rows;
+check('indicadores: equipo aparte de externos', ind.length === 2 && ind[0].grupo === 'equipo' && ind[1].grupo === 'externos', JSON.stringify(ind));
+check('indicadores de la semana: externos 3 personas, 1 con registro, 1 de 6 días = 17 %',
+  ind[1].participantes === 3 && ind[1].con_registro === 1 && ind[1].dias_comprometidos === 6 && ind[1].dias_cumplidos === 1 && ind[1].pct_cumplimiento === 17, JSON.stringify(ind[1]));
+check('indicadores sin alias', !Object.keys(ind[0]).includes('alias') && !JSON.stringify(ind).includes('Lobo'));
+const semanasInd = (await db.query(`select count(distinct semana)::int n from public.indicadores('PRUEBA')`)).rows[0].n;
+check('indicadores: un renglón por semana desde el arranque', semanasInd >= 4, 'semanas ' + semanasInd);
+await db.exec(`update public.participantes set es_equipo = false`);
+
+// Historia 9: salir y borrar mis datos
+await como(5);
+await db.exec(`select public.borrar_mis_datos()`);
+check('historia 9: tras borrar, ya no tengo alta', (await rpc('public.mi_estado()')).alta === false);
+await admin();
+const rastro = (await db.query(`select (select count(*) from auth.users where id='${U(5)}')::int u, (select count(*) from public.participantes where id='${U(5)}')::int p`)).rows[0];
+check('historia 9: se borra el usuario y su fila', rastro.u === 0 && rastro.p === 0);
+await db.exec(`delete from auth.users where id in ('${U(3)}', '${U(4)}'); insert into auth.users values ('${U(3)}')`);
+
 // --- Cupo y cohorte cerrada ---
 await admin();
 await db.exec(`update public.cohortes set cupo = 2`);

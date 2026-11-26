@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#1f6f54">
+  <meta name="theme-color" content="#101412">
   <title>Reto de hábitos</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -42,8 +42,9 @@
           <small>De 3 a 20 caracteres: letras, números, espacios, guion o guion bajo.</small>
         </label>
 
-        <div class="tarjeta aviso">
-          <h3>Aviso de privacidad (versión corta)</h3>
+        <p class="resumen-aviso">Guardamos solo tu alias, tu plan y tu «cumplí» o «no cumplí» de cada día. Nadie ve qué acción elegiste y todo se borra a más tardar el 31 de diciembre de 2026.</p>
+        <details class="tarjeta aviso">
+          <summary>Aviso de privacidad (versión corta)</summary>
           <ul>
             <li><strong>Responsable:</strong> <span data-cfg="responsable"></span>. Contacto: <span data-cfg="correoContacto"></span>.</li>
             <li><strong>Qué guardamos:</strong> tu alias, las micro-acciones que elijas, el hueco de tu día, tus días comprometidos, tu sí o no de cada día, si quieres aparecer en la tabla y la fecha y hora en que aceptas este aviso.</li>
@@ -53,7 +54,7 @@
             <li>Participar es voluntario y no afecta calificaciones. Es para mayores de 18 años. No es diagnóstico ni consejo médico. Puedes salirte y pedir que se borren tus datos cuando quieras.</li>
           </ul>
           <p><a href="aviso.html" target="_blank" rel="noopener">Leer el aviso completo</a></p>
-        </div>
+        </details>
 
         <label class="casilla">
           <input id="acepta" type="checkbox">
@@ -100,18 +101,22 @@
 
     <!-- Historia 4 · Registro diario -->
     <section id="v-hoy" class="vista" hidden>
+      <div class="resumen-semana">
+        <div class="resumen-fila">
+          <p id="semana-texto" class="grande"></p>
+          <p id="racha-chip" class="racha-chip" hidden></p>
+        </div>
+        <div class="barra-avance"><div id="semana-barra"></div></div>
+        <div id="semana-dias" class="semana-dias" aria-label="Tus días de esta semana"></div>
+      </div>
+
       <div class="selector-dia" role="tablist" aria-label="Día a registrar">
         <button id="tab-hoy" class="activo" type="button" role="tab" aria-selected="true">Hoy</button>
         <button id="tab-ayer" type="button" role="tab" aria-selected="false">Ayer</button>
       </div>
       <p id="fecha-dia" class="suave centro"></p>
       <div id="lista-registro"></div>
-
-      <div class="tarjeta semana">
-        <p class="etiqueta">Tu semana</p>
-        <p id="semana-texto" class="grande"></p>
-        <div class="barra-avance"><div id="semana-barra"></div></div>
-      </div>
+      <p id="semana-racha" class="suave chico centro"></p>
 
       <div class="tarjeta" id="tarjeta-franja">
         <p class="etiqueta">Tu hueco del día</p>
@@ -123,14 +128,52 @@
     <section id="v-tabla" class="vista" hidden>
       <h2 id="tabla-titulo">Tabla de tu liga</h2>
       <p id="tabla-mensaje" class="suave"></p>
+      <div id="tabla-grupo" class="tarjeta" hidden>
+        <p class="etiqueta">Meta de todo el grupo</p>
+        <p id="grupo-texto" class="grande"></p>
+        <div class="barra-avance"><div id="grupo-barra"></div></div>
+      </div>
       <ol id="tabla-filas" class="tabla"></ol>
       <p id="tabla-pie" class="suave chico" hidden>Se ordena por % de la meta propia y se reinicia cada lunes. Solo aparece quien aceptó. Nadie ve qué acción eligió cada quien.</p>
+    </section>
+
+    <!-- Historias 7 y 9 · Mis datos -->
+    <section id="v-datos" class="vista" hidden>
+      <h2>Mis datos</h2>
+      <div class="tarjeta">
+        <p class="etiqueta">Tu alias</p>
+        <p id="datos-alias" class="grande"></p>
+        <p class="etiqueta">Tu plan</p>
+        <p id="datos-plan"></p>
+      </div>
+
+      <div class="tarjeta">
+        <label class="casilla interruptor">
+          <input id="datos-aparece" type="checkbox">
+          <span>Aparecer con mi alias en la tabla de mi liga</span>
+        </label>
+        <p class="suave chico">Tu liga solo ve tu alias, tu porcentaje, tus días cumplidos y tu racha. Nunca qué acción elegiste. Puedes cambiarlo cuando quieras.</p>
+      </div>
+
+      <div class="tarjeta">
+        <p class="etiqueta">Privacidad</p>
+        <p class="chico"><a href="aviso.html" target="_blank" rel="noopener">Leer el aviso de privacidad</a></p>
+        <button id="btn-borrar" class="boton peligro" type="button">Salir y borrar mis datos</button>
+        <div id="confirmar-borrado" hidden>
+          <p class="error">Esto borra tu alias, tu plan y todos tus registros. No se puede deshacer.</p>
+          <div class="fila-botones">
+            <button id="btn-borrar-no" class="boton" type="button">Cancelar</button>
+            <button id="btn-borrar-si" class="boton peligro lleno" type="button">Sí, borrar todo</button>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 
   <nav id="navegacion" class="navegacion" hidden>
     <button id="nav-hoy" class="activo" type="button">Registro</button>
     <button id="nav-tabla" type="button">Tabla</button>
+    <button id="nav-datos" type="button">Mis datos</button>
   </nav>
 
   <div id="toast" class="toast" role="status" hidden></div>

@@ -61,7 +61,7 @@ npm install
 npm test
 ```
 
-`probar-sql.mjs` corre `schema.sql` en un Postgres local y revisa las reglas (66 comprobaciones). `probar-pagina.mjs` abre la página en un navegador con tamaño de celular y recorre el flujo completo contra ese mismo Postgres (55 comprobaciones). En las dos, la autenticación de Supabase está simulada: la prueba con el Supabase real se hace a mano con el enlace `?c=PRUEBA`.
+`probar-sql.mjs` corre `schema.sql` en un Postgres local y revisa las reglas (66 comprobaciones). `probar-pagina.mjs` abre la página en un navegador con tamaño de celular y recorre el flujo completo contra ese mismo Postgres (57 comprobaciones). En las dos, la autenticación de Supabase está simulada: la prueba con el Supabase real se hace a mano con el enlace `?c=PRUEBA`.
 
 ## Pendientes y decisiones abiertas
 

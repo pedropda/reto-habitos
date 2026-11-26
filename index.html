@@ -37,9 +37,12 @@
       <form id="form-alta" novalidate>
         <label class="campo">
           <span>Tu alias</span>
-          <input id="alias" type="text" inputmode="text" autocomplete="off" autocapitalize="words"
-                 minlength="3" maxlength="20" placeholder="Por ejemplo: Colibrí 22" required>
-          <small>De 3 a 20 caracteres: letras, números, espacios, guion o guion bajo.</small>
+          <span class="fila-alias">
+            <input id="alias" type="text" inputmode="text" autocomplete="off" autocapitalize="words"
+                   minlength="3" maxlength="20" placeholder="Por ejemplo: Colibrí 22" required>
+            <button id="btn-generar" class="boton chico" type="button" aria-label="Generar un alias al azar">🎲 Generar</button>
+          </span>
+          <small>Escribe el tuyo o toca «Generar» para que la página te proponga uno. De 3 a 20 caracteres: letras, números, espacios, guion o guion bajo.</small>
         </label>
 
         <p class="resumen-aviso">Guardamos solo tu alias, tu plan y tu «cumplí» o «no cumplí» de cada día. Nadie ve qué acción elegiste y todo se borra a más tardar el 31 de diciembre de 2026.</p>

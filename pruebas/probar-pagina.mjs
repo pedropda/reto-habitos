@@ -136,6 +136,9 @@ check('historia 1: abre la pantalla de alta', await visible(p, 'v-alta'));
 check('las dos casillas llegan sin marcar', !(await p.isChecked('#acepta')) && !(await p.isChecked('#aparece')));
 await foto(p, '1-alta');
 
+await p.tap('#btn-generar');
+const generado = await p.inputValue('#alias');
+check('alias al azar: animal y dos cifras, válido', /^[A-Za-z]{3,17} \d{2}$/.test(generado) && generado.length <= 20, generado);
 await p.fill('#alias', 'Colibrí 22');
 await p.tap('#btn-alta');
 check('sin aceptar el aviso no entra', (await p.textContent('#error-alta')).includes('aceptar el aviso'));
@@ -330,7 +333,18 @@ await C.pagina.waitForSelector('#error-alta:not([hidden])');
 check('enlace con código inválido: no da de alta', (await C.pagina.textContent('#error-alta')).includes('enlace de invitación no es válido')
   && (await db.query(`select count(*)::int n from public.participantes where alias = 'Tlacuache'`)).rows[0].n === 0);
 
-const todos = [...A.errores, ...B.errores, ...C.errores];
+// ===== 4. Alta con un alias generado =====
+const D = await nuevoCelular();
+await D.pagina.goto(BASE + '/?c=PRUEBA');
+await D.pagina.waitForSelector('#v-alta:not([hidden])');
+await D.pagina.tap('#btn-generar');
+const aliasD = await D.pagina.inputValue('#alias');
+await D.pagina.check('#acepta');
+await D.pagina.tap('#btn-alta');
+await D.pagina.waitForSelector('#v-acciones:not([hidden])');
+check('el alias generado se acepta en el alta', (await db.query(`select count(*)::int n from public.participantes where alias = $1`, [aliasD])).rows[0].n === 1, aliasD);
+
+const todos = [...A.errores, ...B.errores, ...C.errores, ...D.errores];
 check('sin errores de JavaScript en consola', todos.length === 0, JSON.stringify(todos));
 
 await navegador.close();

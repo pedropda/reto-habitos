@@ -187,6 +187,23 @@
 
   // ---------- historia 1: alta ----------
 
+  // Alias al azar: un animal y dos cifras. No identifica a nadie y evita
+  // que alguien use su nombre. Sin acentos, para que siempre pase la validación.
+  var ANIMALES = ['Ajolote', 'Quetzal', 'Jaguar', 'Tlacuache', 'Cenzontle', 'Ocelote', 'Coyote', 'Tortuga',
+    'Mapache', 'Venado', 'Nutria', 'Zorro', 'Lince', 'Puma', 'Iguana', 'Armadillo', 'Mariposa', 'Lobo',
+    'Garza', 'Erizo', 'Foca', 'Gaviota', 'Liebre', 'Castor'];
+  function aliasAlAzar() {
+    var animal = ANIMALES[Math.floor(Math.random() * ANIMALES.length)];
+    return animal + ' ' + (10 + Math.floor(Math.random() * 90));
+  }
+  function generarAlias() {
+    var campo = $('alias');
+    var nuevo = aliasAlAzar();
+    if (nuevo === campo.value) nuevo = aliasAlAzar();
+    campo.value = nuevo;
+    ponerError('error-alta', '');
+  }
+
   async function enviarAlta(ev) {
     ev.preventDefault();
     ponerError('error-alta', '');
@@ -536,6 +553,7 @@
   // ---------- eventos ----------
 
   $('form-alta').addEventListener('submit', enviarAlta);
+  $('btn-generar').addEventListener('click', generarAlias);
   $('btn-acciones').addEventListener('click', function () { pintarHueco(); mostrar('v-hueco'); });
   $('btn-hueco-atras').addEventListener('click', function () { mostrar('v-acciones'); });
   $('btn-hueco').addEventListener('click', guardarPlan);

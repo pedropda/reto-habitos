@@ -1,4 +1,5 @@
-// Reto de hábitos · versión 0.2 (iteraciones 1 y 2, historias 1 a 11)
+// Racha (antes «Reto de hábitos») · versión 0.3: marca, tema claro y ajustes de interfaz
+// sobre la versión 0.2 (iteraciones 1 y 2, historias 1 a 11).
 // Página estática: toda la lógica de reglas vive en supabase/schema.sql.
 (function () {
   'use strict';
@@ -362,6 +363,9 @@
       if (a.minutos) detalle.appendChild(crear('span', '', a.minutos + ' min · '));
       if (a.id === estado.accion_con_hueco) {
         detalle.appendChild(crear('span', 'hueco', 'Tu hueco: ' + nombreFranja(estado.franja).toLowerCase()));
+      } else if (a.momento) {
+        // Solo llega si el equipo aplica supabase/propuesta-sorteo-hueco.sql
+        detalle.appendChild(crear('span', 'hueco sin', 'Su momento: ' + a.momento));
       } else {
         detalle.appendChild(crear('span', 'hueco sin', 'Sin hueco fijo: cuando puedas'));
       }
@@ -515,7 +519,28 @@
     $('datos-aparece').checked = !!estado.aparece_en_tabla;
     $('confirmar-borrado').hidden = true;
     $('btn-borrar').hidden = false;
+    pintarTema();
     mostrar('v-datos');
+  }
+
+  // ---------- apariencia: tema claro u oscuro (se guarda solo en este navegador) ----------
+
+  var TEMAS = [
+    { id: 'auto',   nombre: 'Automático' },
+    { id: 'claro',  nombre: 'Claro' },
+    { id: 'oscuro', nombre: 'Oscuro' }
+  ];
+  function pintarTema() {
+    if (!window.RachaTema) return;
+    pintarOpciones('opciones-tema', TEMAS, window.RachaTema.leer(), function (id) {
+      window.RachaTema.poner(id);
+      pintarTema();
+    });
+  }
+  function alternarTema() {
+    if (!window.RachaTema) return;
+    window.RachaTema.poner(window.RachaTema.actual() === 'claro' ? 'oscuro' : 'claro');
+    if (!$('v-datos').hidden) pintarTema();
   }
 
   async function cambiarAparece() {
@@ -556,6 +581,7 @@
 
   // ---------- eventos ----------
 
+  $('btn-tema').addEventListener('click', alternarTema);
   $('form-alta').addEventListener('submit', enviarAlta);
   $('btn-generar').addEventListener('click', generarAlias);
   generarAlias();

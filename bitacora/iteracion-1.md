@@ -30,7 +30,11 @@
 
 ### Jueves 26 de noviembre
 
-- _Por llenar._
+- Alta con el enlace del equipo desde Chrome en computadora (Pedro, con apoyo de Claude): alias, dos micro-acciones, hueco «antes de clase» y 5 días por semana. El plan se guardó. Falta confirmar el registro diario y la tabla con uso real; el primer registro es esta noche.
+- **Error encontrado con uso real:** con «Salir a caminar» y «Apagar pantallas antes de dormir», el sorteo le dio el hueco «antes de clase» a apagar pantallas. Corrección propuesta y probada en local (11 comprobaciones): `reto-habitos-v0.3/supabase/propuesta-sorteo-hueco.sql`. No está aplicada: decide el equipo, porque cambia el sorteo de la hipótesis 1.
+- Se preparó la **versión 0.3** en la carpeta `reto-habitos-v0.3` (fuera del repositorio), con apoyo de Claude: marca **Racha**, logo, ícono en la pestaña del navegador, tema claro y oscuro y ajustes de interfaz. Pruebas en local: 79 comprobaciones de la página y 66 de la base de datos, todas aprobadas. El nombre «Racha» quedó confirmado ese mismo día y los archivos se copiaron al repositorio. Falta el commit y el push: hasta entonces la página pública sigue en la 0.2.
+- Tablero de Miro: tarjetas nuevas en el Kanban (error del sorteo, versión 0.3 e idea H25) y dos marcos nuevos, «Fase 3 · Racha: marca y versión 0.3» y «Más adelante · Racha dentro de un asistente de IA».
+- Se descargaron las grabaciones y transcripciones de las clases del 23 y del 25 de noviembre. Para el lunes 30 el profesor pidió mostrar lo que ya esté terminado del backlog.
 
 ### Viernes 27 de noviembre · punto de control
 

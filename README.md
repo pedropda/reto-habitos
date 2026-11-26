@@ -1,21 +1,24 @@
-# Reto de hábitos
+# Racha
 
 Página web de reto por cohorte para personas que trabajan y estudian. Cada quien entra con un alias, elige 1 o 2 micro-acciones de 5 a 15 minutos, declara el hueco de su día, marca sí o no cada día y ve una tabla que premia cumplir **su propia meta**, no quién hace más.
 
-Proyecto del Hackathon «Tendencias en nuevas tecnologías» (EBC, 2026). El nombre «Reto de hábitos» es provisional.
+Proyecto del Hackathon «Tendencias en nuevas tecnologías» (EBC, 2026). Hasta la versión 0.2 se llamó «Reto de hábitos»; desde la 0.3 la marca es **Racha**. El repositorio y el enlace conservan el nombre anterior para no romper los enlaces de invitación.
 
-**Versión 0.2 (25 de noviembre de 2026).** Cubre las historias 1 a 11 del backlog: la iteración 1 (historias 1 a 6) y, por adelantado, la iteración 2 (historias 7 a 11).
+**Versión 0.3 (26 de noviembre de 2026).** Mismas historias 1 a 11 de la versión 0.2, más: marca y logo, ícono en la pestaña del navegador, tema claro y oscuro (sigue al celular y se puede cambiar) y ajustes de interfaz. No cambia la base de datos.
 
-![Pantallas de la versión 0.2, con datos de prueba](docs/pantallas-v0.2.png)
+![Pantallas de la versión 0.3, con datos de prueba](docs/pantallas-v0.3.png)
 
 ## Qué hay en este repositorio
 
 | Ruta | Qué es |
 |---|---|
 | `index.html`, `css/`, `js/app.js` | La página. Es estática: se publica tal cual con GitHub Pages |
+| `js/tema.js` | Tema claro u oscuro. La preferencia se guarda solo en el navegador de cada quien (`racha.tema`); no viaja a la base de datos |
+| `img/`, `site.webmanifest` | Logo, ícono de la pestaña (`favicon.svg` y PNG), ícono para la pantalla de inicio del celular y manifiesto |
 | `js/config.js` | URL y llave **publicable** de Supabase, y los datos del aviso de privacidad |
 | `aviso.html` | Aviso de privacidad completo (borrador) |
 | `supabase/schema.sql` | Base de datos: tablas, reglas de acceso y funciones |
+| `supabase/propuesta-sorteo-hueco.sql` | **Propuesta sin aplicar**: que las acciones con momento propio («antes de dormir») no se lleven el hueco en el sorteo. El equipo decide |
 | `pruebas/` | Pruebas automáticas de la base de datos y de la página |
 | `bitacora/` | Bitácora de proyecto, una entrada por iteración |
 
@@ -61,13 +64,14 @@ npm install
 npm test
 ```
 
-`probar-sql.mjs` corre `schema.sql` en un Postgres local y revisa las reglas (66 comprobaciones). `probar-pagina.mjs` abre la página en un navegador con tamaño de celular y recorre el flujo completo contra ese mismo Postgres (59 comprobaciones). En las dos, la autenticación de Supabase está simulada: la prueba con el Supabase real se hace a mano con el enlace `?c=PRUEBA`.
+`probar-sql.mjs` corre `schema.sql` en un Postgres local y revisa las reglas (66 comprobaciones). `probar-pagina.mjs` abre la página en un navegador con tamaño de celular y recorre el flujo completo contra ese mismo Postgres (79 comprobaciones; las de la versión 0.3 revisan la marca, los íconos, los dos temas y el contraste del texto). `npm run propuesta` prueba la propuesta del sorteo (11 comprobaciones). En las dos, la autenticación de Supabase está simulada: la prueba con el Supabase real se hace a mano con el enlace `?c=PRUEBA`.
 
 ## Pendientes y decisiones abiertas
 
 - **Qué cuenta como «día cumplido» con 2 acciones.** Hoy cuenta si se cumplió al menos una. Se cambia en una sola función (`dias_cumplidos`).
 - **Catálogo de micro-acciones.** Es un borrador: falta la revisión del profesional de la salud.
 - **Aviso de privacidad.** Falta definir quién firma como responsable, el correo de contacto y la región del servidor (`js/config.js` y `aviso.html`).
-- **Racha.** Cuenta días cumplidos seguidos, con un comodín por semana. Alternativa por decidir: contarla por semanas cumplidas.
+- **Sorteo del hueco y acciones con momento propio.** Con uso real (26-nov) el sorteo le dio el hueco «antes de clase» a «Apagar pantallas antes de dormir». La corrección está escrita y probada en `supabase/propuesta-sorteo-hueco.sql`, sin aplicar, porque cambia el sorteo de la hipótesis 1.
+- **Racha (la cuenta de días).** Cuenta días cumplidos seguidos, con un comodín por semana. Alternativa por decidir: contarla por semanas cumplidas.
 - **Indicadores (historia 10).** Se consultan en el SQL Editor con `select * from public.indicadores('CODIGO');` y se exportan desde ahí, sin alias.
 - Todo se borra a más tardar el 31 de diciembre de 2026.

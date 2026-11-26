@@ -1,11 +1,12 @@
 {
-  "name": "reto-habitos-pruebas",
+  "name": "racha-pruebas",
   "private": true,
   "type": "module",
   "scripts": {
     "sql": "node probar-sql.mjs ../supabase/schema.sql",
     "pagina": "node probar-pagina.mjs .. ./capturas",
-    "test": "npm run sql && npm run pagina"
+    "test": "npm run sql && npm run pagina",
+    "propuesta": "node probar-propuesta-hueco.mjs ../supabase/schema.sql ../supabase/propuesta-sorteo-hueco.sql"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.6.0",

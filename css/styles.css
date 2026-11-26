@@ -64,7 +64,8 @@ a { color: var(--verde); }
 .campo { display: block; margin: 16px 0; }
 .campo > span { display: block; font-weight: 600; margin-bottom: 6px; }
 .campo > .fila-alias { display: flex; gap: 8px; margin-bottom: 0; }
-.fila-alias input { flex: 1; min-width: 0; }
+.fila-alias input { flex: 1; min-width: 0; font-weight: 700; font-size: 1.15rem; color: var(--verde); }
+.fila-alias input:focus { outline: none; }
 .boton.chico { width: auto; min-height: 0; padding: 0 14px; white-space: nowrap; font-weight: 600; }
 .campo input {
   width: 100%; font: inherit; padding: 14px;

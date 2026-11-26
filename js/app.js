@@ -187,14 +187,15 @@
 
   // ---------- historia 1: alta ----------
 
-  // Alias al azar: un animal y dos cifras. No identifica a nadie y evita
-  // que alguien use su nombre. Sin acentos, para que siempre pase la validación.
+  // El alias siempre es al azar: un animal y dos cifras, sin espacios (Quetzal82).
+  // Nadie escribe el suyo, así no hay nombres reales ni texto libre.
+  // Sin acentos, para que siempre pase la validación.
   var ANIMALES = ['Ajolote', 'Quetzal', 'Jaguar', 'Tlacuache', 'Cenzontle', 'Ocelote', 'Coyote', 'Tortuga',
     'Mapache', 'Venado', 'Nutria', 'Zorro', 'Lince', 'Puma', 'Iguana', 'Armadillo', 'Mariposa', 'Lobo',
     'Garza', 'Erizo', 'Foca', 'Gaviota', 'Liebre', 'Castor'];
   function aliasAlAzar() {
     var animal = ANIMALES[Math.floor(Math.random() * ANIMALES.length)];
-    return animal + ' ' + (10 + Math.floor(Math.random() * 90));
+    return animal + (10 + Math.floor(Math.random() * 90));
   }
   function generarAlias() {
     var campo = $('alias');
@@ -207,11 +208,7 @@
   async function enviarAlta(ev) {
     ev.preventDefault();
     ponerError('error-alta', '');
-    var alias = $('alias').value.replace(/\s+/g, ' ').trim();
-    if (alias.length < 3 || alias.length > 20) {
-      ponerError('error-alta', ERRORES.alias_invalido);
-      return;
-    }
+    if (!$('alias').value) generarAlias();
     if (!$('acepta').checked) {
       ponerError('error-alta', ERRORES.falta_consentimiento);
       return;
@@ -226,10 +223,17 @@
         var r = await sb.auth.signInAnonymously();
         if (r.error) throw r.error;
       }
-      try {
-        await rpc('alta', { p_codigo: codigo, p_alias: alias, p_acepta: true, p_aparece: $('aparece').checked });
-      } catch (e) {
-        if (claveDe(e) !== 'ya_tiene_alta') throw e;
+      // Si el alias ya está tomado en el grupo, se sortea otro y se reintenta solo
+      for (var intento = 0; intento < 8; intento++) {
+        try {
+          await rpc('alta', { p_codigo: codigo, p_alias: $('alias').value, p_acepta: true, p_aparece: $('aparece').checked });
+          break;
+        } catch (e) {
+          var clave = claveDe(e);
+          if (clave === 'ya_tiene_alta') break;
+          if (clave !== 'alias_ocupado' || intento === 7) throw e;
+          generarAlias();
+        }
       }
       await refrescarYRutear();
     } catch (e) {
@@ -554,6 +558,7 @@
 
   $('form-alta').addEventListener('submit', enviarAlta);
   $('btn-generar').addEventListener('click', generarAlias);
+  generarAlias();
   $('btn-acciones').addEventListener('click', function () { pintarHueco(); mostrar('v-hueco'); });
   $('btn-hueco-atras').addEventListener('click', function () { mostrar('v-acciones'); });
   $('btn-hueco').addEventListener('click', guardarPlan);

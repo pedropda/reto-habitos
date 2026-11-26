@@ -31,18 +31,17 @@
     <!-- Historia 1 · Alta con alias y consentimiento -->
     <section id="v-alta" class="vista" hidden>
       <p class="paso">Paso 1 de 3</p>
-      <h2>Elige un alias</h2>
-      <p class="suave">No pedimos tu nombre, correo ni teléfono. Usa un apodo que no te identifique.</p>
+      <h2>Este es tu alias</h2>
+      <p class="suave">No pedimos tu nombre, correo ni teléfono. La página te asigna un alias al azar para que nadie pueda identificarte.</p>
 
       <form id="form-alta" novalidate>
         <label class="campo">
           <span>Tu alias</span>
           <span class="fila-alias">
-            <input id="alias" type="text" inputmode="text" autocomplete="off" autocapitalize="words"
-                   minlength="3" maxlength="20" placeholder="Por ejemplo: Colibrí 22" required>
-            <button id="btn-generar" class="boton chico" type="button" aria-label="Generar un alias al azar">🎲 Generar</button>
+            <input id="alias" type="text" readonly aria-readonly="true" autocomplete="off">
+            <button id="btn-generar" class="boton chico" type="button" aria-label="Cambiar por otro alias al azar">🎲 Otro</button>
           </span>
-          <small>Escribe el tuyo o toca «Generar» para que la página te proponga uno. De 3 a 20 caracteres: letras, números, espacios, guion o guion bajo.</small>
+          <small>Así te verá tu liga si aceptas aparecer en la tabla. Si no te gusta, toca «Otro».</small>
         </label>
 
         <p class="resumen-aviso">Guardamos solo tu alias, tu plan y tu «cumplí» o «no cumplí» de cada día. Nadie ve qué acción elegiste y todo se borra a más tardar el 31 de diciembre de 2026.</p>

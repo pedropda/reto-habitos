@@ -112,6 +112,8 @@ async function nuevoCelular(conConfig = true) {
   return { ctx, pagina, errores };
 }
 const visible = (p, id) => p.locator('#' + id).isVisible();
+// El alias ya no se escribe: para las pruebas se fija directo en el campo
+const pon = (pag, alias) => pag.evaluate(a => { document.getElementById('alias').value = a; }, alias);
 const foto = (p, nombre) => p.screenshot({ path: join(CAPTURAS, nombre + '.png'), fullPage: true });
 
 // ===== 0. Sin configurar y sin enlace =====
@@ -136,10 +138,13 @@ check('historia 1: abre la pantalla de alta', await visible(p, 'v-alta'));
 check('las dos casillas llegan sin marcar', !(await p.isChecked('#acepta')) && !(await p.isChecked('#aparece')));
 await foto(p, '1-alta');
 
+const inicial = await p.inputValue('#alias');
+check('el alias llega asignado al azar, sin espacios (animal y dos cifras)', /^[A-Z][a-z]{2,16}\d{2}$/.test(inicial), inicial);
+check('el alias no se puede escribir', await p.locator('#alias').evaluate(e => e.readOnly));
 await p.tap('#btn-generar');
 const generado = await p.inputValue('#alias');
-check('alias al azar: animal y dos cifras, válido', /^[A-Za-z]{3,17} \d{2}$/.test(generado) && generado.length <= 20, generado);
-await p.fill('#alias', 'Colibrí 22');
+check('«Otro» sortea un alias distinto', /^[A-Z][a-z]{2,16}\d{2}$/.test(generado) && generado !== inicial, generado);
+await pon(p, 'Colibri22');
 await p.tap('#btn-alta');
 check('sin aceptar el aviso no entra', (await p.textContent('#error-alta')).includes('aceptar el aviso'));
 const antes = (await db.query(`select count(*)::int n from auth.users`)).rows[0].n;
@@ -171,7 +176,7 @@ check('historia 4: llega al registro diario', await visible(p, 'v-hoy'));
 check('2 tarjetas: una con hueco y otra sin hueco',
   (await p.locator('.accion').count()) === 2 && (await p.locator('.hueco.sin').count()) === 1
   && (await p.locator('.hueco:not(.sin)').textContent()).includes('hora de la comida'));
-check('saludo con el alias', (await p.textContent('#saludo')) === 'Colibrí 22');
+check('saludo con el alias', (await p.textContent('#saludo')) === 'Colibri22');
 
 // registrar hoy
 const t0 = Date.now();
@@ -218,7 +223,7 @@ await admin(`update public.ligas set tabla_encendida = true`);
 await p.tap('#nav-tabla');
 await p.waitForSelector('#tabla-filas li');
 const fila = await p.locator('#tabla-filas li').first().textContent();
-check('tabla encendida: alias y % de la meta propia', fila.includes('Colibrí 22 (tú)') && fila.includes(esLunes ? '25 %' : '50 %'), fila);
+check('tabla encendida: alias y % de la meta propia', fila.includes('Colibri22 (tú)') && fila.includes(esLunes ? '25 %' : '50 %'), fila);
 check('la tabla no menciona acciones', !/Caminar|agua/i.test(await p.textContent('#v-tabla')));
 
 // volver a entrar sin el enlace
@@ -232,15 +237,13 @@ const B = await nuevoCelular();
 const q = B.pagina;
 await q.goto(BASE + '/?c=PRUEBA');
 await q.waitForSelector('#v-alta:not([hidden])');
-await q.fill('#alias', 'colibrí 22');
+await pon(q, 'colibri22');
 await q.check('#acepta');
 await q.tap('#btn-alta');
-await q.waitForSelector('#error-alta:not([hidden])');
-check('alias repetido: mensaje claro', (await q.textContent('#error-alta')).includes('ya está en uso'));
-await q.fill('#alias', 'Ajolote');
-await q.tap('#btn-alta');
 await q.waitForSelector('#v-acciones:not([hidden])');
-check('tras corregir el alias entra (reusa la sesión)', (await db.query(`select count(*)::int n from auth.users`)).rows[0].n === 2);
+const aliasB = await q.textContent('#saludo');
+check('alias repetido: la página sortea otro sola y entra', /^[A-Z][a-z]{2,16}\d{2}$/.test(aliasB) && aliasB.toLowerCase() !== 'colibri22', aliasB);
+check('el reintento reusa la misma sesión', (await db.query(`select count(*)::int n from auth.users`)).rows[0].n === 2);
 await q.waitForSelector('#lista-catalogo .opcion');
 await q.locator('#lista-catalogo .opcion', { hasText: 'Estirar' }).tap();
 check('con 1 acción el botón lo dice', (await q.textContent('#btn-acciones')) === 'Continuar con 1 acción');
@@ -280,13 +283,13 @@ check('historia 11: con 2 personas no se muestra la meta del grupo', !(await vis
 
 // Historia 7: B cambia su decisión de aparecer
 await q.tap('#nav-datos');
-check('historia 7: «Mis datos» muestra alias y plan', (await q.textContent('#datos-alias')) === 'Ajolote' && (await q.textContent('#datos-plan')).includes('2 días por semana'));
+check('historia 7: «Mis datos» muestra alias y plan', (await q.textContent('#datos-alias')) === aliasB && (await q.textContent('#datos-plan')).includes('2 días por semana'));
 check('la casilla refleja que B no aparece', !(await q.isChecked('#datos-aparece')));
 await q.check('#datos-aparece');
 await q.waitForFunction(() => !document.getElementById('toast').hidden);
 await q.tap('#nav-tabla');
 await q.waitForFunction(() => document.querySelectorAll('#tabla-filas li').length === 2);
-check('historia 7: al aceptar, B aparece en la tabla', (await q.textContent('#v-tabla')).includes('Ajolote (tú)'));
+check('historia 7: al aceptar, B aparece en la tabla', (await q.textContent('#v-tabla')).includes(aliasB + ' (tú)'));
 await foto(q, '7-tabla-v02');
 await q.tap('#nav-datos');
 await q.uncheck('#datos-aparece');
@@ -311,12 +314,12 @@ await foto(q, '8-mis-datos');
 await q.tap('#btn-borrar');
 check('historia 9: pide confirmar antes de borrar', await visible(q, 'confirmar-borrado'));
 await q.tap('#btn-borrar-no');
-check('cancelar no borra nada', !(await visible(q, 'confirmar-borrado')) && (await db.query(`select count(*)::int n from public.participantes where alias = 'Ajolote'`)).rows[0].n === 1);
+check('cancelar no borra nada', !(await visible(q, 'confirmar-borrado')) && (await db.query(`select count(*)::int n from public.participantes where alias = '${aliasB}'`)).rows[0].n === 1);
 await q.tap('#btn-borrar');
 await q.tap('#btn-borrar-si');
 await q.waitForSelector('#v-aviso-sistema:not([hidden])');
 check('historia 9: confirma que los datos se borraron', (await q.textContent('#sistema-titulo')) === 'Tus datos se borraron');
-const resto = (await db.query(`select (select count(*) from public.participantes where alias = 'Ajolote')::int p, (select count(*) from public.registros r join public.participantes x on x.id = r.participante_id where x.alias = 'Ajolote')::int r`)).rows[0];
+const resto = (await db.query(`select (select count(*) from public.participantes where alias = '${aliasB}')::int p, (select count(*) from public.registros r join public.participantes x on x.id = r.participante_id where x.alias = '${aliasB}')::int r`)).rows[0];
 check('historia 9: en la base ya no queda nada de B', resto.p === 0 && resto.r === 0);
 await q.goto(BASE + '/');
 await q.waitForSelector('#v-aviso-sistema:not([hidden])');
@@ -326,7 +329,7 @@ check('historia 9: al volver ya no tiene sesión ni enlace guardado', (await q.t
 const C = await nuevoCelular();
 await C.pagina.goto(BASE + '/?c=NOEXISTE');
 await C.pagina.waitForSelector('#v-alta:not([hidden])');
-await C.pagina.fill('#alias', 'Tlacuache');
+await pon(C.pagina, 'Tlacuache');
 await C.pagina.check('#acepta');
 await C.pagina.tap('#btn-alta');
 await C.pagina.waitForSelector('#error-alta:not([hidden])');
